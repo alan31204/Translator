@@ -599,7 +599,7 @@ and ast_ize_reln_tail (lhs:ast_e) (tail:parse_tree) : ast_e =
      tail is an ET parse tree node *)
   match tail with
   | PT_nt ("ET", []) -> lhs
-  | PT_nt ("ET", ["ro"; expr]) -> AST_binop (ro, lhs, ast_ize_expr(expr))
+  | PT_nt ("ET", [ro; expr]) -> AST_binop ("ro", lhs, ast_ize_expr(expr))
   | _ -> raise (Failure "malformed parse tree in ast_ize_reln_tail")
 
 and ast_ize_expr_tail (lhs:ast_e) (tail:parse_tree) : ast_e =
@@ -611,10 +611,10 @@ and ast_ize_expr_tail (lhs:ast_e) (tail:parse_tree) : ast_e =
   *)
   | PT_nt ("TT", []) -> lhs
   | PT_nt ("FT", []) -> lhs
-  | PT_nt ("TT", ["ao"; term; term_tail]) 
-        -> AST_binop (ao, lhs, (ast_ize_expr_tail(ast_ize_expr(term)) term_tail) )
-  | PT_nt ("FT", ["mo"; factor; factor_tail]) 
-        -> AST_binop (mo, lhs, (ast_ize_expr_tail(ast_ize_expr(factor)) factor_tail) )
+  | PT_nt ("TT", [ao; term; term_tail]) 
+        -> AST_binop ("ao", lhs, (ast_ize_expr_tail(ast_ize_expr(term)) term_tail) )
+  | PT_nt ("FT", [mo; factor; factor_tail]) 
+        -> AST_binop ("mo", lhs, (ast_ize_expr_tail(ast_ize_expr(factor)) factor_tail) )
   | _ -> raise (Failure "malformed parse tree in ast_ize_expr_tail")
 ;;
 
@@ -637,30 +637,30 @@ let p = "
 (*
   let p = "
           read n
-		  m := n
-		  sum := 0
-		  do check m > 0
-		  read token
-		  sum := sum + token
-		  m := m - 1
-		  od
-		  sum := sum / n
-		  write sum";; *)
-		   
+      m := n
+      sum := 0
+      do check m > 0
+      read token
+      sum := sum + token
+      m := m - 1
+      od
+      sum := sum / n
+      write sum";; *)
+       
 (*
   let p = "
-		  read n
-		  k := 0
-		  sum := 0
-		  do 
-		  check k < n
-		  read token
-		  k := k + 1
-		  sum := sum + token
-		  fi 
-		  od
-		  sum := sum / n
-		  write sum ";;
+      read n
+      k := 0
+      sum := 0
+      do 
+      check k < n
+      read token
+      k := k + 1
+      sum := sum + token
+      fi 
+      od
+      sum := sum / n
+      write sum ";;
 *)
 
 let tree = parse ecg_parse_table primes_prog;;
