@@ -664,7 +664,6 @@ let p = "
 *)
 
 let tree = parse ecg_parse_table primes_prog;;
-ast_ize_P tree;;
 
 (*******************************************************************
     Translate to C
@@ -677,28 +676,64 @@ ast_ize_P tree;;
    indicating their names and the lines on which the writes occur.  Your
    C program should contain code to check for dynamic semantic errors. *)
 
-(*  commented out so this code will complile
+(*  commented out so this code will complile *)
 
-let rec translate (ast:ast_sl)
-    :  string *  string
-    (* warnings  output_program *) = ...
+let rec translate (ast:ast_sl)  :  string *  string = translate_sl (ast)
 
-and translate_sl (...
+and translate_sl (ast:ast_sl)  :  string *  string = 
+  match ast with 
+  | h :: t
+    -> (fst (translate_s h)) ^ fst (translate_sl t), snd(translate_s h) ^ snd (translate_sl t)
+  | _ -> ("","")
+and translate_s (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_assign id_e-> translate_assign ast
+  | AST_read id -> translate_read ast
+  | AST_write e -> translate_write ast
+  | AST_if e_sl-> translate_if ast
+  | AST_do sl -> translate_do ast
+  | AST_check e -> translate_check ast
+  | _ -> raise (Failure "Translate s ")
 
-and translate_s (...
+and translate_assign (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_assign (id, e) -> ("", id ^  " = " ^ snd(translate_expr e) ^ ";\n")
+  | _ -> raise (Failure "Translate assign ")
 
-and translate_assign (...
+and translate_read (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_read id-> ("", id ^ " = getint(); \n")
+  | _ -> raise (Failure "Translate read ")
 
-and translate_read (...
+and translate_write (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_write e -> ("",  "putint(" ^ snd (translate_expr e) ^ ");\n")
+  | _ -> raise (Failure "Translate write ")
 
-and translate_write (...
+and translate_if (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_if (e, sl) -> ( "","if (" ^ snd( translate_expr e) ^ ")\n {\n" ^ snd( translate_sl sl) ^ "}\n")
+  | _ -> raise (Failure "Translate if ")
 
-and translate_if (...
+and translate_do (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_do sl -> ("", "while (1) {" ^ snd( translate_sl sl) ^ "}\n")
+  | _ -> raise (Failure "Translate do ")
 
-and translate_do (...
+and translate_check (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_check e -> ("", "if(!(" ^ snd( translate_expr e) ^ ")) break;\n")
+  | _ -> raise (Failure "Translate check ")
 
-and translate_check (...
+and translate_expr (ast:ast_e)  :  string *  string = 
+  match ast with
+  | AST_binop (op, e1, e2 )-> ("", snd( translate_expr e1) ^ op ^ snd( translate_expr e2))
+  | AST_id id -> ("", id)
+  | AST_num num -> ("", num);;
 
-and translate_expr (...
-
+(*
+#use "translator.ml";;
 *)
+(*print_string (snd translate( ast_ize_P tree)) ;;*)
+print_string (snd (translate (ast_ize_P (parse ecg_parse_table primes_prog))));;
+
