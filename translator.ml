@@ -689,7 +689,7 @@ ast_ize_P tree2;; *)
     (* warnings  output_program *) 
     
 
-let rec translate (ast:ast_sl) (helper:string) :  string *  string = ("", helper^snd(translate_sl (ast))^"}")
+let rec translate (ast:ast_sl) (helper:string) :  string *  string = ("", helper^snd(translate_sl (ast))^"}\n")
 
 and translate_sl (ast:ast_sl)  :  string *  string = 
   match ast with 
@@ -755,7 +755,7 @@ let  helper = "
     int array[100];
     char* string[100];
 
-    int getint() {
+    int getint1() {
       int num;
       if(scanf(\"%d\", &num) == 1){
         return num;
@@ -763,6 +763,22 @@ let  helper = "
         printf(\"wrong in getint!!\");
         return -1;
         exit(1);
+      }
+    }
+
+    int getint() {
+      char str[100];
+      if(scanf(\"%s\", &str) != 1){
+        printf(\"Unexpected end of input!\\n\");
+        exit(1);
+      }else{
+        for(int k = 0; str[k]!='\\0' ; k++){
+          if(str[k] >'9' || str[k] <'0'){
+            printf(\"non numeric input!\\n\");
+            exit(1);
+          }
+        }
+        return atoi(str);
       }
     }
 
@@ -823,5 +839,5 @@ let prog = "read a
 print_string (snd (translate (ast_ize_P (parse ecg_parse_table primes_prog)) helper));;
 
 
-print_string (snd (translate (ast_ize_P (parse ecg_parse_table prog)) helper));;
+print_string (snd (translate (ast_ize_P (parse ecg_parse_table prog)) helper));; 
 
