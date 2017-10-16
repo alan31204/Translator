@@ -640,30 +640,30 @@ let p = "
 (*
   let p = "
           read n
-      m := n
-      sum := 0
-      do check m > 0
-      read token
-      sum := sum + token
-      m := m - 1
-      od
-      sum := sum / n
-      write sum";; *)
-       
+		  m := n
+		  sum := 0
+		  do check m > 0
+		  read token
+		  sum := sum + token
+		  m := m - 1
+		  od
+		  sum := sum / n
+		  write sum";; *)
+		   
 (*
   let p = "
-      read n
-      k := 0
-      sum := 0
-      do 
-      check k < n
-      read token
-      k := k + 1
-      sum := sum + token
-      fi 
-      od
-      sum := sum / n
-      write sum ";;
+		  read n
+		  k := 0
+		  sum := 0
+		  do 
+		  check k < n
+		  read token
+		  k := k + 1
+		  sum := sum + token
+		  fi 
+		  od
+		  sum := sum / n
+		  write sum ";;
 *)
 
 let tree = parse ecg_parse_table primes_prog;;
