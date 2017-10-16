@@ -15,6 +15,9 @@ open Str;;      (* for split *)
         ocamlc str.cma interpreter.ml
 *)
 
+(* CSC 254 Assignment 3 Translation*)
+(* Po-Chun Chiu & Yujie Liu *)
+
 (* Surprisingly, compose isn't built in.  It's included in various
    widely used commercial packages, but not in the core libraries. *)
 let compose f g x = f (g x);;
@@ -475,13 +478,13 @@ let parse (parse_tab:parse_table) (program:string) : parse_tree =
           if is_terminal tos gram then
             if tos = term then
               begin
-              
+                (*
                 print_string ("   match " ^ tos);
                 print_string
                     (if tos <> term      (* value comparison *)
                          then (" (" ^ tok ^ ")") else "");
                 print_newline ();
-              
+                *)
                 helper ps_tail more_tokens
                        (( match term with
                           | "id"  -> PT_id tok
@@ -496,11 +499,11 @@ let parse (parse_tab:parse_table) (program:string) : parse_tree =
                                ^ " when seeing " ^ tok)
             | PA_prediction(rhs) ->
                 begin
-                
+                  (*
                   print_string ("   predict " ^ tos ^ " ->");
                   print_string (fold_left (fun a b -> a ^ " " ^ b) "" rhs);
                   print_newline ();
-                
+                  *)
                   helper ((fold_left (@) [] 
                                     (map (fun s -> [PS_sym(s)]) rhs))
                               @ [PS_end(length rhs)] @ ps_tail)
@@ -599,7 +602,7 @@ and ast_ize_reln_tail (lhs:ast_e) (tail:parse_tree) : ast_e =
      tail is an ET parse tree node *)
   match tail with
   | PT_nt ("ET", []) -> lhs
-  | PT_nt ("ET", [ro; expr]) -> AST_binop ("ro", lhs, ast_ize_expr(expr))
+  | PT_nt ("ET", [PT_nt (ro, [PT_term operator]); expr]) -> AST_binop (operator, lhs, ast_ize_expr(expr))
   | _ -> raise (Failure "malformed parse tree in ast_ize_reln_tail")
 
 and ast_ize_expr_tail (lhs:ast_e) (tail:parse_tree) : ast_e =
@@ -611,10 +614,10 @@ and ast_ize_expr_tail (lhs:ast_e) (tail:parse_tree) : ast_e =
   *)
   | PT_nt ("TT", []) -> lhs
   | PT_nt ("FT", []) -> lhs
-  | PT_nt ("TT", [ao; term; term_tail]) 
-        -> AST_binop ("ao", lhs, (ast_ize_expr_tail(ast_ize_expr(term)) term_tail) )
-  | PT_nt ("FT", [mo; factor; factor_tail]) 
-        -> AST_binop ("mo", lhs, (ast_ize_expr_tail(ast_ize_expr(factor)) factor_tail) )
+  | PT_nt ("TT", [PT_nt (ao, [PT_term operator]); term; term_tail]) 
+        -> AST_binop (operator, lhs, (ast_ize_expr_tail(ast_ize_expr(term)) term_tail) )
+  | PT_nt ("FT", [PT_nt (mo, [PT_term operator]); factor; factor_tail]) 
+        -> AST_binop (operator, lhs, (ast_ize_expr_tail(ast_ize_expr(factor)) factor_tail) )
   | _ -> raise (Failure "malformed parse tree in ast_ize_expr_tail")
 ;;
 
@@ -664,7 +667,9 @@ let p = "
 *)
 
 let tree = parse ecg_parse_table primes_prog;;
-ast_ize_P tree;;
+ast_ize_P tree;; 
+(* let tree2 = parse ecg_parse_table sum_ave_prog;;
+ast_ize_P tree2;; *)
 
 (*******************************************************************
     Translate to C
@@ -677,28 +682,132 @@ ast_ize_P tree;;
    indicating their names and the lines on which the writes occur.  Your
    C program should contain code to check for dynamic semantic errors. *)
 
-(*  commented out so this code will complile
+(*  commented out so this code will complile *)
 
-let rec translate (ast:ast_sl)
-    :  string *  string
-    (* warnings  output_program *) = ...
+    (* warnings  output_program *) 
+    
 
-and translate_sl (...
+let rec translate (ast:ast_sl) (helper:string) :  string *  string = ("", helper^snd(translate_sl (ast))^"}")
 
-and translate_s (...
+and translate_sl (ast:ast_sl)  :  string *  string = 
+  match ast with 
+  | h :: t
+    -> (fst (translate_s h)) ^ fst (translate_sl t), snd(translate_s h) ^ snd (translate_sl t)
+  | _ -> ("","")
+and translate_s (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_assign id_e-> translate_assign ast
+  | AST_read id -> translate_read ast
+  | AST_write e -> translate_write ast
+  | AST_if e_sl-> translate_if ast
+  | AST_do sl -> translate_do ast
+  | AST_check e -> translate_check ast
+  | _ -> raise (Failure "Translate s ")
 
-and translate_assign (...
+and translate_assign (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_assign (id, e) -> ("", "setvar(" ^ "\"" ^id ^ "\", " ^ snd(translate_expr e) ^ ");\n")
+  | _ -> raise (Failure "Translate assign ")
 
-and translate_read (...
+and translate_read (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_read id-> ("", "setvar(" ^ "\"" ^id ^ "\", getint()); \n")
+  | _ -> raise (Failure "Translate read ")
 
-and translate_write (...
+and translate_write (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_write e -> ("",  "putint(" ^ snd (translate_expr e) ^ ");\n")
+  | _ -> raise (Failure "Translate write ")
 
-and translate_if (...
+and translate_if (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_if (e, sl) -> ( "","if (" ^ snd( translate_expr e) ^ ")\n {\n" ^ snd( translate_sl sl) ^ "}\n")
+  | _ -> raise (Failure "Translate if ")
 
-and translate_do (...
+and translate_do (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_do sl -> ("", "while (1) {" ^ snd( translate_sl sl) ^ "}\n")
+  | _ -> raise (Failure "Translate do ")
 
-and translate_check (...
+and translate_check (ast:ast_s)  :  string *  string = 
+  match ast with
+  | AST_check e -> ("", "if(!(" ^ snd( translate_expr e) ^ ")) break;\n")
+  | _ -> raise (Failure "Translate check ")
 
-and translate_expr (...
+and translate_expr (ast:ast_e)  :  string *  string = 
+  match ast with
+  | AST_binop (op, e1, e2 )-> ("", snd( translate_expr e1) ^ op ^ snd( translate_expr e2))
+  | AST_id id -> ("", "getvar( \"" ^ id ^ "\"" ^ ")")
+  | AST_num num -> ("", num);;
 
+(*
+#use "translator.ml";;
 *)
+(*print_string (snd translate( ast_ize_P tree)) ;;*)
+let  helper = "
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+
+    int array[100];
+    char* string[100];
+
+    int getint() {
+      int num;
+      if(scanf(\"%d\", &num) == 1){
+        return num;
+      }else{
+        printf(\"wrong in getint!!\");
+        return -1;
+        exit(1);
+      }
+    }
+
+    void putint(int n) {
+      printf(\"%d\\n\", n);
+    }
+
+    int divisionE(){
+      printf(\"A division by zero erro here!\");
+      exit(1);
+      return 1;
+    }
+    
+    int divide (int a, int b){
+      if(b == 0){
+        divisionE();
+      }
+      return a/b ;
+    }
+    
+
+    int getvar(char* a){
+      for(int i = 0; string [i] != '\\0';i++){
+        if(!strcmp(string[i],a)){
+          return array[i];
+        }
+      }
+      printf(\"Use of uninitialized variable %s\", a);
+      exit (1);
+    }
+
+    int setvar(char* a, int n){
+      int i;
+      for(i = 0; string [i] != '\\0';i++){
+        if(!strcmp(string[i],a)){
+          array[i] = n;
+          return 1;
+        }
+      }
+      string[i] = a;
+      array[i] = n; 
+      return 0;
+    }
+    
+    
+    
+    int main(int argc, char* argv[]) {
+
+
+    ";;
+print_string (snd (translate (ast_ize_P (parse ecg_parse_table primes_prog)) helper));;
