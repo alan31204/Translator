@@ -755,20 +755,10 @@ let  helper = "
     int array[100];
     char* string[100];
 
-    int getint1() {
-      int num;
-      if(scanf(\"%d\", &num) == 1){
-        return num;
-      }else{
-        printf(\"wrong in getint!!\");
-        return -1;
-        exit(1);
-      }
-    }
-
     int getint() {
       char str[100];
-      if(scanf(\"%s\", &str) != 1){
+      int n = scanf(\"%s\", str);
+      if(n != 1){
         printf(\"Unexpected end of input!\\n\");
         exit(1);
       }else{
@@ -839,5 +829,5 @@ let prog = "read a
 print_string (snd (translate (ast_ize_P (parse ecg_parse_table primes_prog)) helper));;
 
 
-print_string (snd (translate (ast_ize_P (parse ecg_parse_table prog)) helper));; 
+(* print_string (snd (translate (ast_ize_P (parse ecg_parse_table prog)) helper));;  *)
 
