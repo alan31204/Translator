@@ -15,6 +15,9 @@ open Str;;      (* for split *)
         ocamlc str.cma interpreter.ml
 *)
 
+(* CSC 254 Assignment 3 Translation*)
+(* Po-Chun Chiu & Yujie Liu *)
+
 (* Surprisingly, compose isn't built in.  It's included in various
    widely used commercial packages, but not in the core libraries. *)
 let compose f g x = f (g x);;
@@ -475,13 +478,13 @@ let parse (parse_tab:parse_table) (program:string) : parse_tree =
           if is_terminal tos gram then
             if tos = term then
               begin
-              
+                (*
                 print_string ("   match " ^ tos);
                 print_string
                     (if tos <> term      (* value comparison *)
                          then (" (" ^ tok ^ ")") else "");
                 print_newline ();
-              
+                *)
                 helper ps_tail more_tokens
                        (( match term with
                           | "id"  -> PT_id tok
@@ -496,11 +499,11 @@ let parse (parse_tab:parse_table) (program:string) : parse_tree =
                                ^ " when seeing " ^ tok)
             | PA_prediction(rhs) ->
                 begin
-                
+                  (*
                   print_string ("   predict " ^ tos ^ " ->");
                   print_string (fold_left (fun a b -> a ^ " " ^ b) "" rhs);
                   print_newline ();
-                
+                  *)
                   helper ((fold_left (@) [] 
                                     (map (fun s -> [PS_sym(s)]) rhs))
                               @ [PS_end(length rhs)] @ ps_tail)
@@ -637,33 +640,36 @@ let p = "
 (*
   let p = "
           read n
-      m := n
-      sum := 0
-      do check m > 0
-      read token
-      sum := sum + token
-      m := m - 1
-      od
-      sum := sum / n
-      write sum";; *)
-       
+		  m := n
+		  sum := 0
+		  do check m > 0
+		  read token
+		  sum := sum + token
+		  m := m - 1
+		  od
+		  sum := sum / n
+		  write sum";; *)
+		   
 (*
   let p = "
-      read n
-      k := 0
-      sum := 0
-      do 
-      check k < n
-      read token
-      k := k + 1
-      sum := sum + token
-      fi 
-      od
-      sum := sum / n
-      write sum ";;
+		  read n
+		  k := 0
+		  sum := 0
+		  do 
+		  check k < n
+		  read token
+		  k := k + 1
+		  sum := sum + token
+		  fi 
+		  od
+		  sum := sum / n
+		  write sum ";;
 *)
 
 let tree = parse ecg_parse_table primes_prog;;
+ast_ize_P tree;; 
+(* let tree2 = parse ecg_parse_table sum_ave_prog;;
+ast_ize_P tree2;; *)
 
 (*******************************************************************
     Translate to C
@@ -678,7 +684,10 @@ let tree = parse ecg_parse_table primes_prog;;
 
 (*  commented out so this code will complile *)
 
-let rec translate (ast:ast_sl)  :  string *  string = translate_sl (ast)
+    (* warnings  output_program *) 
+    
+
+let rec translate (ast:ast_sl) (helper:string) :  string *  string = ("", helper^snd(translate_sl (ast))^"}")
 
 and translate_sl (ast:ast_sl)  :  string *  string = 
   match ast with 
@@ -697,12 +706,12 @@ and translate_s (ast:ast_s)  :  string *  string =
 
 and translate_assign (ast:ast_s)  :  string *  string = 
   match ast with
-  | AST_assign (id, e) -> ("", id ^  " = " ^ snd(translate_expr e) ^ ";\n")
+  | AST_assign (id, e) -> ("", "setvar(" ^ "\"" ^id ^ "\", " ^ snd(translate_expr e) ^ ");\n")
   | _ -> raise (Failure "Translate assign ")
 
 and translate_read (ast:ast_s)  :  string *  string = 
   match ast with
-  | AST_read id-> ("", id ^ " = getint(); \n")
+  | AST_read id-> ("", "setvar(" ^ "\"" ^id ^ "\", getint()); \n")
   | _ -> raise (Failure "Translate read ")
 
 and translate_write (ast:ast_s)  :  string *  string = 
@@ -728,12 +737,77 @@ and translate_check (ast:ast_s)  :  string *  string =
 and translate_expr (ast:ast_e)  :  string *  string = 
   match ast with
   | AST_binop (op, e1, e2 )-> ("", snd( translate_expr e1) ^ op ^ snd( translate_expr e2))
-  | AST_id id -> ("", id)
+  | AST_id id -> ("", "getvar( \"" ^ id ^ "\"" ^ ")")
   | AST_num num -> ("", num);;
 
 (*
 #use "translator.ml";;
 *)
 (*print_string (snd translate( ast_ize_P tree)) ;;*)
-print_string (snd (translate (ast_ize_P (parse ecg_parse_table primes_prog))));;
+let  helper = "
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
 
+    int array[100];
+    char* string[100];
+
+    int getint() {
+      int num;
+      if(scanf(\"%d\", &num) == 1){
+        return num;
+      }else{
+        printf(\"wrong in getint!!\");
+        return -1;
+        exit(1);
+      }
+    }
+
+    void putint(int n) {
+      printf(\"%d\\n\", n);
+    }
+
+    int divisionE(){
+      printf(\"A division by zero erro here!\");
+      exit(1);
+      return 1;
+    }
+    
+    int divide (int a, int b){
+      if(b == 0){
+        divisionE();
+      }
+      return a/b ;
+    }
+    
+
+    int getvar(char* a){
+      for(int i = 0; string [i] != '\\0';i++){
+        if(!strcmp(string[i],a)){
+          return array[i];
+        }
+      }
+      printf(\"Use of uninitialized variable %s\", a);
+      exit (1);
+    }
+
+    int setvar(char* a, int n){
+      int i;
+      for(i = 0; string [i] != '\\0';i++){
+        if(!strcmp(string[i],a)){
+          array[i] = n;
+          return 1;
+        }
+      }
+      string[i] = a;
+      array[i] = n; 
+      return 0;
+    }
+    
+    
+    
+    int main(int argc, char* argv[]) {
+
+
+    ";;
+print_string (snd (translate (ast_ize_P (parse ecg_parse_table primes_prog)) helper));;
