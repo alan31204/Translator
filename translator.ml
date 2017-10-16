@@ -754,6 +754,7 @@ let  helper = "
 
     int array[100];
     char* string[100];
+    
 
     int getint() {
       char str[100];
@@ -791,7 +792,7 @@ let  helper = "
     
 
     int getvar(char* a){
-      for(int i = 0; string [i] != '\\0';i++){
+      for(int i = 0; string [i] != 0;i++){
         if(!strcmp(string[i],a)){
           return array[i];
         }
@@ -802,7 +803,7 @@ let  helper = "
 
     int setvar(char* a, int n){
       int i;
-      for(i = 0; string [i] != '\\0';i++){
+      for(i = 0; string [i] != 0;i++){
         if(!strcmp(string[i],a)){
           array[i] = n;
           return 1;
@@ -826,8 +827,8 @@ let prog = "read a
         write a / b";;    
 
 
-print_string (snd (translate (ast_ize_P (parse ecg_parse_table primes_prog)) helper));;
+(* print_string (snd (translate (ast_ize_P (parse ecg_parse_table primes_prog)) helper));; *)
 
 
-(* print_string (snd (translate (ast_ize_P (parse ecg_parse_table prog)) helper));;  *)
+print_string (snd (translate (ast_ize_P (parse ecg_parse_table prog)) helper));; 
 
