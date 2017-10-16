@@ -433,6 +433,8 @@ let primes_prog = "
          cp := cp + 1
      od";;
 
+ 
+
 type parse_action = PA_error | PA_prediction of string list;;
 (* Double-index to find prediction (list of RHS symbols) for
    nonterminal nt and terminal t.
@@ -640,30 +642,30 @@ let p = "
 (*
   let p = "
           read n
-		  m := n
-		  sum := 0
-		  do check m > 0
-		  read token
-		  sum := sum + token
-		  m := m - 1
-		  od
-		  sum := sum / n
-		  write sum";; *)
-		   
+      m := n
+      sum := 0
+      do check m > 0
+      read token
+      sum := sum + token
+      m := m - 1
+      od
+      sum := sum / n
+      write sum";; *)
+       
 (*
   let p = "
-		  read n
-		  k := 0
-		  sum := 0
-		  do 
-		  check k < n
-		  read token
-		  k := k + 1
-		  sum := sum + token
-		  fi 
-		  od
-		  sum := sum / n
-		  write sum ";;
+      read n
+      k := 0
+      sum := 0
+      do 
+      check k < n
+      read token
+      k := k + 1
+      sum := sum + token
+      fi 
+      od
+      sum := sum / n
+      write sum ";;
 *)
 
 let tree = parse ecg_parse_table primes_prog;;
@@ -736,6 +738,7 @@ and translate_check (ast:ast_s)  :  string *  string =
 
 and translate_expr (ast:ast_e)  :  string *  string = 
   match ast with
+  | AST_binop ("/", e1, e2) -> ("", "divide (" ^ snd( translate_expr e1) ^ ", " ^ snd( translate_expr e2) ^ ") ")
   | AST_binop (op, e1, e2 )-> ("", snd( translate_expr e1) ^ op ^ snd( translate_expr e2))
   | AST_id id -> ("", "getvar( \"" ^ id ^ "\"" ^ ")")
   | AST_num num -> ("", num);;
@@ -768,7 +771,7 @@ let  helper = "
     }
 
     int divisionE(){
-      printf(\"A division by zero erro here!\");
+      printf(\"A division by zero erro here!\\n\");
       exit(1);
       return 1;
     }
@@ -787,7 +790,7 @@ let  helper = "
           return array[i];
         }
       }
-      printf(\"Use of uninitialized variable %s\", a);
+      printf(\"Use of uninitialized variable %s\\n\", a);
       exit (1);
     }
 
@@ -810,4 +813,15 @@ let  helper = "
 
 
     ";;
+
+
+let prog = "read a
+        read b
+        write a / b";;    
+
+
 print_string (snd (translate (ast_ize_P (parse ecg_parse_table primes_prog)) helper));;
+
+
+print_string (snd (translate (ast_ize_P (parse ecg_parse_table prog)) helper));;
+
