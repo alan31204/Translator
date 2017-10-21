@@ -687,7 +687,7 @@ ast_ize_P tree2;; *)
 (*  commented out so this code will complile *)
 
     (* warnings  output_program *) 
-
+type memory = string list;;
 let  helper = "
     #include <stdio.h>
     #include <stdlib.h>
@@ -755,61 +755,91 @@ let  helper = "
 
 
     ";;
-    
+  (*this function will check whethr the everything in db is in used, if not , return them*)  
+let rec remainder (db:memory) (used: memory) : string =
+  match db with
+  | h :: t -> if mem h used then remainder t used else h ^ " " ^ (remainder t used)
+  | _ -> "";;
 
-let rec translate (ast:ast_sl) :  string *  string = ("", helper^snd(translate_sl (ast))^"}\n")
+let rec translate (ast:ast_sl) :  string *  string = 
+  let tpl1, tpl2, tpl3 = translate_sl ast [] [] in
+  ("Warning: you have declared but not used the following variable(s): "^(remainder tpl1 tpl2) ^ "\n", helper^tpl3^"}\n")
 
-and translate_sl (ast:ast_sl)  :  string *  string = 
+and translate_sl (ast:ast_sl) (db:memory) (used: memory):  memory * memory *  string = 
   match ast with 
-  | h :: t
-    -> (fst (translate_s h)) ^ fst (translate_sl t), snd(translate_s h) ^ snd (translate_sl t)
-  | _ -> ("","")
-and translate_s (ast:ast_s)  :  string *  string = 
+  | h :: t -> 
+  let tpl1, tpl2,tpl3 = translate_s h db used in
+  let tpl4, tpl5, tpl6 = translate_sl t tpl1 tpl2 in
+  (tpl4, tpl5, tpl3 ^ tpl6)
+  | _ -> (db,used, "")
+and translate_s (ast:ast_s) (db:memory) (used: memory):  memory * memory *  string = 
   match ast with
-  | AST_assign id_e-> translate_assign ast
-  | AST_read id -> translate_read ast
-  | AST_write e -> translate_write ast
-  | AST_if e_sl-> translate_if ast
-  | AST_do sl -> translate_do ast
-  | AST_check e -> translate_check ast
+  | AST_assign id_e-> translate_assign ast db used
+  | AST_read id -> translate_read ast db used
+  | AST_write e -> translate_write ast db used
+  | AST_if e_sl-> translate_if ast db used
+  | AST_do sl -> translate_do ast db used
+  | AST_check e -> translate_check ast db used
   | _ -> raise (Failure "Translate s ")
 
-and translate_assign (ast:ast_s)  :  string *  string = 
+and translate_assign (ast:ast_s) (db:memory) (used: memory):  memory * memory *  string = 
+(*let msg = print_string("Db: "^String.concat " " db) in *)
   match ast with
-  | AST_assign (id, e) -> ("", "setvar(" ^ "\"" ^id ^ "\", " ^ snd(translate_expr e) ^ ");\n")
+  | AST_assign (id, e) -> 
+    let tpl1, tpl2, tpl3 = translate_expr e db used in
+    let db2 = if mem id db then db else id::db in
+    (db2, tpl2, "setvar(" ^ "\"" ^id ^ "\", " ^ tpl3 ^ ");\n")
   | _ -> raise (Failure "Translate assign ")
 
-and translate_read (ast:ast_s)  :  string *  string = 
+and translate_read (ast:ast_s) (db:memory) (used: memory):  memory * memory *  string = 
   match ast with
-  | AST_read id-> ("", "setvar(" ^ "\"" ^id ^ "\", getint()); \n")
+  | AST_read id-> let db2 = if mem id db then db else id::db in
+  (db2, used, "setvar(" ^ "\"" ^id ^ "\", getint()); \n")
   | _ -> raise (Failure "Translate read ")
 
-and translate_write (ast:ast_s)  :  string *  string = 
+and translate_write (ast:ast_s) (db:memory) (used: memory):  memory * memory *  string = 
   match ast with
-  | AST_write e -> ("",  "putint(" ^ snd (translate_expr e) ^ ");\n")
+  | AST_write e -> 
+    let tpl1, tpl2, tpl3 = translate_expr e db used in
+    (tpl1, tpl2, "putint(" ^ tpl3 ^ ");\n")
   | _ -> raise (Failure "Translate write ")
 
-and translate_if (ast:ast_s)  :  string *  string = 
+and translate_if (ast:ast_s) (db:memory) (used: memory):  memory * memory *  string = 
   match ast with
-  | AST_if (e, sl) -> ( "","if (" ^ snd( translate_expr e) ^ ")\n {\n" ^ snd( translate_sl sl) ^ "}\n")
+  | AST_if (e, sl) -> 
+    let tpl1, tpl2, tpl3 = translate_expr e db used in
+    let tpl4, tpl5, tpl6 = translate_sl sl tpl1 tpl2 in
+    ( tpl4, tpl5, "if (" ^ tpl3 ^ ")\n {\n" ^ tpl6 ^ "}\n")
   | _ -> raise (Failure "Translate if ")
 
-and translate_do (ast:ast_s)  :  string *  string = 
+and translate_do (ast:ast_s) (db:memory) (used: memory):  memory * memory *  string = 
   match ast with
-  | AST_do sl -> ("", "while (1) {" ^ snd( translate_sl sl) ^ "}\n")
+  | AST_do sl -> 
+    let tpl1, tpl2, tpl3 = translate_sl sl db used in
+    (tpl1, tpl2, "while (1) {" ^ tpl3 ^ "}\n")
   | _ -> raise (Failure "Translate do ")
 
-and translate_check (ast:ast_s)  :  string *  string = 
+and translate_check (ast:ast_s) (db:memory) (used: memory):  memory * memory *  string = 
   match ast with
-  | AST_check e -> ("", "if(!(" ^ snd( translate_expr e) ^ ")) break;\n")
+  | AST_check e -> 
+    let tpl1, tpl2, tpl3 = translate_expr e db used in
+    (tpl1, tpl2, "if(!(" ^ tpl3 ^ ")) break;\n")
   | _ -> raise (Failure "Translate check ")
 
-and translate_expr (ast:ast_e)  :  string *  string = 
+and translate_expr (ast:ast_e) (db:memory) (used: memory):  memory * memory *  string = 
   match ast with
-  | AST_binop ("/", e1, e2) -> ("", "divide (" ^ snd( translate_expr e1) ^ ", " ^ snd( translate_expr e2) ^ ") ")
-  | AST_binop (op, e1, e2 )-> ("", snd( translate_expr e1) ^ op ^ snd( translate_expr e2))
-  | AST_id id -> ("", "getvar( \"" ^ id ^ "\"" ^ ")")
-  | AST_num num -> ("", num);;
+  | AST_binop ("/", e1, e2) -> 
+    let tpl1, tpl2, tpl3 = translate_expr e1 db used in
+    let tpl4, tpl5, tpl6 = translate_expr e2 tpl1 tpl2 in
+    (tpl4, tpl5, "divide (" ^ tpl3 ^ ", " ^ tpl6 ^ ") ")
+  | AST_binop (op, e1, e2 )-> 
+    let tpl1, tpl2, tpl3 = translate_expr e1 db used in
+    let tpl4, tpl5, tpl6 = translate_expr e2 tpl1 tpl2 in
+    (tpl4, tpl5, tpl3 ^ op ^ tpl6)
+  | AST_id id -> 
+    let used = if mem id db then id::used else used in
+    (db, used, "getvar( \"" ^ id ^ "\"" ^ ")")
+  | AST_num num -> (db, used, num);;
 
 (*
 #use "translator.ml";;
@@ -819,11 +849,41 @@ and translate_expr (ast:ast_e)  :  string *  string =
 
 let prog = "read a
         read b
-        write a / b";;    
+        a := 2
+        write a/b";;    
+
+let primes_prog1 = "
+     read n
+     read a1
+     a2 := 0
+     cp := 2
+     do check n > 0
+         found := 0
+         cf1 := 2
+         cf1s := cf1 * cf1
+         do check cf1s <= cp
+             cf2 := 2
+             pr := cf1 * cf2
+             do check pr <= cp
+                 if pr == cp
+                     found := 1
+                 fi
+                 cf2 := cf2 + 1
+                 pr := cf1 * cf2
+             od
+             cf1 := cf1 + 1
+             cf1s := cf1 * cf1
+         od
+         if found == 0
+             write cp
+             n := n - 1
+         fi
+         cp := cp + 1
+     od";;
 
 
-print_string (snd (translate (ast_ize_P (parse ecg_parse_table primes_prog))));;
-
+let msg, output = translate (ast_ize_P (parse ecg_parse_table primes_prog1)) in
+print_string msg;;
 
 (*print_string (snd (translate (ast_ize_P (parse ecg_parse_table prog)) helper));; *) 
 
